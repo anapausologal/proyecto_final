@@ -1,0 +1,236 @@
+---
+title: "Análisis de datos de fertilidad"
+author: "Ana Paula Solórzano"
+date: "2026-06-30"
+output: html_document
+---
+
+### Descarga del conjunto de datos
+
+El conjunto de datos utilizado en este análisis fue obtenido de la plataforma Kaggle, específicamente del repositorio *Fertility Data Set*.
+
+[*Fertility Data Set en Kaggle*](https://www.kaggle.com/datasets/muhamedyoussry/fertility-data-set)
+
+A continuación, se cargan los datos en R y se visualizan las primeras observaciones del conjunto de datos:
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+fertilidad <- read.csv("~/R Studio/Code & Data Bootcamp/proyecto_final/data/fertility.csv")
+head(fertilidad)
+```
+
+### Descripción de los datos
+
+**Dimensiones del dataframe**
+
+```{r}
+dim(fertilidad)
+```
+
+El conjunto de datos está compuesto por 100 filas y 10 columnas.
+
+**Nombres de las columnas**
+
+```{r}
+names(fertilidad)
+```
+
+**Tipo de variables en cada columna**
+
+```{r}
+str(fertilidad)
+```
+
+La mayoría de las variables corresponden a datos de tipo carácter (`chr`) y numéricos enteros (`int`).
+
+### Preguntas de análisis de datos
+
+#### ¿Existe una diferencia en la edad entre las personas con diagnóstico normal y alterado de fertilidad?
+
+Se realiza un resumen de los datos agrupando por edad y diagnóstico:
+
+```{r}
+edad_fertilidad <- fertilidad %>%
+  group_by(Age) %>%
+  summarise(
+    total = n(),
+    normal = sum(Diagnosis == "Normal"),
+    alterada = sum(Diagnosis == "Altered"),
+    prop_infertilidad = alterada / total,
+    porcentaje_normal = normal / total * 100
+  ) %>%
+  arrange(desc(normal))
+edad_fertilidad
+```
+
+Se complementa el análisis con una visualización de la distribución de la edad según el diagnóstico:
+
+```{r}
+ggplot(data = fertilidad,
+       aes(x = Diagnosis,
+           y = Age)) +
+  geom_boxplot() +
+  labs(
+    title = "Relación entre edad y diagnóstico de fertilidad",
+    x = "Diagnóstico de fertilidad",
+    y = "Edad de los pacientes"
+  ) +
+  theme_minimal()
+```
+
+Se observa una diferencia en la distribución de la edad entre los grupos. El grupo “Altered” se concentra en edades ligeramente mayores, aproximadamente entre 30 y 32 años, mientras que el grupo “Normal” presenta una distribución más amplia. Esto sugiere una posible asociación entre mayor edad y diagnóstico de fertilidad alterado.
+
+#### ¿El hábito de fumar está asociado con el diagnóstico de fertilidad?
+
+Se calcula un resumen por hábito de fumar y diagnóstico:
+
+```{r}
+fumar_fertilidad <- fertilidad %>%
+  group_by(Smoking.habit) %>%
+  summarise(
+    total = n(),
+    normal = sum(Diagnosis == "Normal"),
+    alterada = sum(Diagnosis == "Altered"),
+    prop_infertilidad = alterada / total,
+    porcentaje_normal = normal / total * 100
+    ) %>%
+  arrange(desc(porcentaje_normal))
+fumar_fertilidad
+```
+
+Se analiza la distribución mediante una gráfica de frecuencias:
+
+```{r}
+ggplot(data = fertilidad, 
+       aes(x = Smoking.habit, 
+           fill = Diagnosis)) +
+  geom_bar(position = "dodge") +
+  labs(
+    title = "Relación entre hábito de fumar y diagnóstico de fertilidad",
+    x = "Hábito de fumar",
+    y = "Conteo de pacientes"
+  ) +
+  theme_minimal()
+```
+
+Se observa una ligera disminución en el porcentaje de diagnósticos de fertilidad normal conforme aumenta la frecuencia de consumo de tabaco, con valores más altos en no fumadores (89.3%) y más bajos en fumadores diarios (85.7%).
+
+
+#### ¿La frecuencia de consumo de alcohol está asociada con el diagnóstico de fertilidad?
+
+Se realiza un resumen de los datos según la frecuencia de consumo de alcohol y el diagnóstico de fertilidad:
+
+```{r}
+alcohol_fertilidad <- fertilidad %>%
+  group_by(Frequency.of.alcohol.consumption) %>%
+  summarise(
+    total = n(),
+    normal = sum(Diagnosis == "Normal"),
+    alterada = sum(Diagnosis == "Altered"),
+    prop_infertilidad = alterada / total,
+    porcentaje_normal = normal / total * 100
+    ) %>%
+  arrange(desc(normal))
+alcohol_fertilidad
+```
+
+Posteriormente, se visualiza la proporción de diagnósticos según la frecuencia de consumo de alcohol:
+
+```{r}
+ggplot(fertilidad,
+       aes(x = Frequency.of.alcohol.consumption,
+           fill = Diagnosis)) +
+  geom_bar(position = "fill") +
+  labs(
+    title = "Proporción del diagnóstico de fertilidad según el consumo de alcohol",
+    x = "Frecuencia de consumo de alcohol",
+    y = "Proporción"
+  ) +
+  theme_minimal()
+```
+
+Se observa que la mayoría de los pacientes presentan un diagnóstico de fertilidad normal, independientemente de la frecuencia de consumo de alcohol. Aunque algunos grupos muestran una proporción ligeramente mayor de diagnósticos alterados, no se aprecia una asociación clara entre el consumo de alcohol y el diagnóstico de fertilidad.
+
+
+#### ¿Las personas con antecedentes médicos presentan mayor proporción de infertilidad?
+
+Se analiza la relación entre antecedentes médicos y diagnóstico de fertilidad:
+
+```{r, message=FALSE, warning=FALSE}
+medica_fertilidad <- fertilidad %>%
+  group_by(Childish.diseases, Accident.or.serious.trauma, Surgical.intervention) %>%
+  summarise(
+    total = n(),
+    normal = sum(Diagnosis == "Normal"),
+    infertilidad = sum(Diagnosis == "Altered" ),
+    prop_infertilidad = infertilidad / total,
+    porcentaje_normal = normal / total * 100)
+medica_fertilidad
+```
+
+Se crea una variable que agrupa los antecedentes médicos:
+
+```{r}
+fertilidad2 <- fertilidad %>%
+  mutate(grupo_antecedentes = paste(
+    Childish.diseases,
+    Accident.or.serious.trauma,
+    Surgical.intervention,
+    sep = " | "
+  ))
+head(fertilidad2)
+```
+
+Se visualiza la distribución del diagnóstico según los antecedentes médicos:
+
+```{r}
+ggplot(fertilidad2,
+       aes(x = grupo_antecedentes,
+           fill = Diagnosis)) +
+  geom_bar(position = "fill") +
+  labs(
+    x = "Antecedentes médicos (combinación)",
+    y = "Proporción",
+    fill = "Diagnóstico",
+    title = "Relación entre antecedentes médicos y diagnóstico de fertilidad"
+  ) +
+  theme_minimal()
+```
+
+Los resultados sugieren que algunos antecedentes médicos, particularmente las intervenciones quirúrgicas, se asocian con una mayor proporción de diagnósticos alterados de fertilidad. Sin embargo, no se observa una tendencia consistente, por lo que no es posible establecer una relación clara entre estos antecedentes y el diagnóstico de fertilidad.
+
+
+#### ¿El tiempo sedentario diario cambia según la estación y se asocia con el diagnóstico de fertilidad?
+
+Se calcula el tiempo promedio y la mediana de horas sedentarias por estación del año y diagnóstico de fertilidad:
+
+```{r, message=FALSE, warning=FALSE}
+sedentario_fertilidad <- fertilidad %>%
+  group_by(Season, Diagnosis) %>%
+  summarise(
+    total = n(),
+    media_h_sentadas = mean(Number.of.hours.spent.sitting.per.day, na.rm = TRUE),
+    mediana_h_sentadas = median(Number.of.hours.spent.sitting.per.day, na.rm = TRUE)
+  )
+
+sedentario_fertilidad
+```
+
+Se visualiza la distribución del tiempo sedentario según la estación del año y el diagnóstico:
+
+```{r, message=FALSE, warning=FALSE}
+ggplot(fertilidad,
+       aes(x = Season,
+           y = Number.of.hours.spent.sitting.per.day,
+           fill = Diagnosis)) +
+  geom_boxplot() +
+  labs(
+    x = "Estación del año",
+    y = "Horas sentado por día",
+    title = "Relación entre el tiempo sedentario, la estación y el diagnóstico de fertilidad"
+  ) +
+  theme_minimal() +
+  ylim(0, 20)  # límite establecido para mejorar la visualización
+```
+
+El análisis no muestra una asociación clara entre el tiempo de sedentarismo y el diagnóstico de fertilidad. Las medianas son similares entre los grupos con diagnóstico normal y alterado. La media elevada observada en primavera para el grupo con diagnóstico normal se atribuye a la presencia de valores atípicos, por lo que no representa adecuadamente la tendencia central de los datos.
